@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>System V2</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial;
+      background: radial-gradient(circle, #0a0a0a, #000);
+      color: #c084fc;
+    }
+
+    .container {
+      max-width: 700px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #8b5cf6;
+      text-shadow: 0 0 20px #8b5cf6;
+    }
+
+    .card {
+      background: #111;
+      padding: 15px;
+      border-radius: 12px;
+      margin-bottom: 15px;
+      box-shadow: 0 0 10px #8b5cf633;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0;
+      background: #222;
+      border: none;
+      color: white;
+    }
+
+    button {
+      background: linear-gradient(45deg, #7c3aed, #4f46e5);
+      border: none;
+      padding: 10px;
+      margin-top: 5px;
+      color: white;
+      cursor: pointer;
+      border-radius: 8px;
+    }
+
+    button:hover {
+      opacity: 0.9;
+    }
+
+    .tabs button { width: 24%; }
+
+    .hidden { display: none; }
+
+    .xp-bar {
+      height: 12px;
+      background: #222;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    #xpFill {
+      height: 12px;
+      background: linear-gradient(90deg, #7c3aed, #22d3ee);
+      width: 0%;
+    }
+
+    li {
+      background: #1a1a1a;
+      padding: 10px;
+      margin: 5px 0;
+      display: flex;
+      justify-content: space-between;
+      border-radius: 6px;
+    }
+
+    .levelup {
+      position: fixed;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 40px;
+      color: #22d3ee;
+      text-shadow: 0 0 20px #22d3ee;
+      animation: fade 1.5s ease-out;
+    }
+
+    @keyframes fade {
+      0% { opacity: 0; transform: translate(-50%, -70%); }
+      50% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+
+<h1>SYSTEM</h1>
+
+<div class="card">
+  <input id="name" placeholder="Nome do Caçador">
+  <select id="rank">
+    <option>E</option><option>D</option><option>C</option><option>B</option><option>A</option><option>S</option>
+  </select>
+  <p>Nível: <span id="level"></span></p>
+  <p>XP: <span id="xp"></span>/<span id="xpMax"></span></p>
+  <div class="xp-bar"><div id="xpFill"></div></div>
+  <p>Streak: <span id="streak"></span> dias</p>
+</div>
+
+<div class="tabs">
+  <button onclick="tab('missions')">Missões</button>
+  <button onclick="tab('agenda')">Agenda</button>
+  <button onclick="tab('habits')">Hábitos</button>
+  <button onclick="tab('shop')">Loja</button>
+</div>
+
+<div id="missions" class="tab">
+  <input id="mText" placeholder="Missão">
+  <input id="mXP" type="number" placeholder="XP">
+  <button onclick="addMission()">Adicionar</button>
+  <ul id="mList"></ul>
+</div>
+
+<div id="agenda" class="tab hidden">
+  <input id="tText" placeholder="Tarefa">
+  <button onclick="addTask()">Adicionar</button>
+  <ul id="tList"></ul>
+</div>
+
+<div id="habits" class="tab hidden">
+  <input id="hText" placeholder="Hábito diário">
+  <button onclick="addHabit()">Adicionar</button>
+  <ul id="hList"></ul>
+</div>
+
+<div id="shop" class="tab hidden">
+  <button onclick="buy()">+10% XP (100 XP)</button>
+</div>
+
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem('sys2')) || {
+  name:'', level:1, xp:0, xpMax:100, bonus:1, streak:0,
+  lastDay:'', missions:[], tasks:[], habits:[]
+};
+
+function save(){localStorage.setItem('sys2',JSON.stringify(data));}
+
+function update(){
+  name.value=data.name;
+  level.innerText=data.level;
+  xp.innerText=data.xp;
+  xpMax.innerText=data.xpMax;
+  streak.innerText=data.streak;
+  xpFill.style.width=(data.xp/data.xpMax*100)+'%';
+  render();
+}
+
+name.oninput=e=>{data.name=e.target.value;save();};
+
+function gain(x){
+  x=Math.floor(x*data.bonus);
+  data.xp+=x;
+
+  if(data.xp>=data.xpMax){
+    data.xp-=data.xpMax;
+    data.level++;
+    data.xpMax=Math.floor(data.xpMax*1.3);
+    levelUp();
+  }
+
+  save();update();
+}
+
+function levelUp(){
+  let el=document.createElement('div');
+  el.className='levelup';
+  el.innerText='LEVEL UP';
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(),1500);
+}
+
+function addMission(){
+  data.missions.push({t:mText.value,x:+mXP.value});
+  save();update();
+}
+
+function addTask(){
+  data.tasks.push(tText.value);
+  save();update();
+}
+
+function addHabit(){
+  data.habits.push({t:hText.value,done:false});
+  save();update();
+}
+
+function render(){
+  mList.innerHTML='';
+  data.missions.forEach((m,i)=>{
+    mList.innerHTML+=`<li>${m.t} (+${m.x}) <button onclick="doneM(${i})">✔</button></li>`;
+  });
+
+  tList.innerHTML='';
+  data.tasks.forEach((t,i)=>{
+    tList.innerHTML+=`<li>${t} <button onclick="doneT(${i})">✔</button></li>`;
+  });
+
+  hList.innerHTML='';
+  data.habits.forEach((h,i)=>{
+    hList.innerHTML+=`<li>${h.t} <button onclick="doneH(${i})">✔</button></li>`;
+  });
+}
+
+function doneM(i){gain(data.missions[i].x);data.missions.splice(i,1);save();update();}
+function doneT(i){gain(20);data.tasks.splice(i,1);save();update();}
+function doneH(i){gain(10);data.habits[i].done=true;checkStreak();save();update();}
+
+function checkStreak(){
+  let today=new Date().toDateString();
+  if(data.lastDay!==today){
+    data.streak++;
+    data.lastDay=today;
+  }
+}
+
+function buy(){
+  if(data.xp>=100){data.xp-=100;data.bonus+=0.1;save();update();}
+  else alert('XP insuficiente');
+}
+
+function tab(t){
+  document.querySelectorAll('.tab').forEach(e=>e.classList.add('hidden'));
+  document.getElementById(t).classList.remove('hidden');
+}
+
+update();
+</script>
+
+</body>
+</html>
